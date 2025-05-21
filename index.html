@@ -142,7 +142,7 @@ async function updateUI() {
   jwrBal = parseFloat(ethers.utils.formatEther(jwrBalRaw));
   totalStaked = parseFloat(ethers.utils.formatEther(staked.totalStaked));
 
-  document.getElementById("walletBalance").textContent = `Balance: ${jwrBal.toFixed(2)}';
+  document.getElementById("walletBalance").textContent = `Balance: ${jwrBal.toFixed(2)}`; 
   document.getElementById("totalStaked").textContent = totalStaked.toFixed(2);
   document.getElementById("pendingRewards").textContent = parseFloat(ethers.utils.formatEther(reward)).toFixed(2);
   document.getElementById("apyValue").textContent = apy.toString();
