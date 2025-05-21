@@ -9,7 +9,7 @@
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans">
   <div class="max-w-md mx-auto p-6">
-    <h1 class="text-3xl font-bold mb-6">Stake 0G</h1>
+    <h1 class="text-3xl font-bold mb-6">Stake JWR</h1>
 
     <div class="bg-white shadow rounded-lg p-4 mb-6">
       <div class="flex justify-between items-center text-sm">
@@ -26,16 +26,16 @@
       </div>
       <p id="walletBalance" class="text-sm text-gray-500 mt-1">Balance: -</p>
 <div class="text-center text-sm text-gray-500 mb-2">
-  APY: <span id="apyValue">-</span>% &bull; Pool: <span id="poolBalance">-</span> 0G
+  APY: <span id="apyValue">-</span>% &bull; Pool: <span id="poolBalance">-</span> JWR
 </div>
       <div class="grid grid-cols-2 gap-4 text-center mt-4">
         <div>
           <p class="text-gray-500">Total Staked</p>
-          <p id="totalStaked" class="text-lg font-semibold">0.00 0G</p>
+          <p id="totalStaked" class="text-lg font-semibold">0.00 JWR</p>
         </div>
         <div>
           <p class="text-gray-500">Pending Rewards</p>
-          <p id="pendingRewards" class="text-lg font-semibold">0.00 0G</p>
+          <p id="pendingRewards" class="text-lg font-semibold">0.00 JWR</p>
         </div>
       </div>
     </div>
@@ -257,7 +257,9 @@ const abi = [
 		"type": "function"
 	}
 ];
-  const token = new ethers.Contract(jwrTokenAddress, [
+
+// Faucet minimal ABI
+const faucetAbi = [
   {
     "inputs": [],
     "name": "faucet",
@@ -265,119 +267,196 @@ const abi = [
     "stateMutability": "nonpayable",
     "type": "function"
   }
-], signer);
-  
+];
+
+let token; // declare di atas
+
 async function updateUI() {
-  const staked = await contract.getStakedAmount(walletAddress);
-  const reward = await contract.pendingReward(walletAddress);
-  const rawBal = await provider.getBalance(walletAddress);
+  // Pool info
+  const pool = await contract.pools(jwrTokenAddress);
+  const apy = pool.apy;
+  const poolTotalStaked = pool.totalStaked;
   
+  // User info
+  const staked = await contract.pools(jwrTokenAddress);
+  const reward = await contract.pendingReward(jwrTokenAddress, walletAddress);
+  const rawBal = await provider.getBalance(walletAddress);
+
   balance = parseFloat(ethers.utils.formatEther(rawBal));
-  totalStaked = parseFloat(ethers.utils.formatEther(staked));
+  totalStaked = parseFloat(ethers.utils.formatEther(staked.totalStaked)); // pakai totalStaked di pool
 
-  document.getElementById("walletBalance").textContent = `Balance: ${balance.toFixed(2)} 0G`;
-  document.getElementById("totalStaked").textContent = totalStaked.toFixed(2) + " 0G";
-  document.getElementById("pendingRewards").textContent = parseFloat(ethers.utils.formatEther(reward)).toFixed(2) + " 0G";
-	const apy = await contract.apy();
-document.getElementById("apyValue").textContent = apy.toString();
+  document.getElementById("walletBalance").textContent = `Balance: ${balance.toFixed(2)} JWR`;
+  document.getElementById("totalStaked").textContent = totalStaked.toFixed(2) + " JWR";
+  document.getElementById("pendingRewards").textContent = parseFloat(ethers.utils.formatEther(reward)).toFixed(2) + " JWR";
+  document.getElementById("apyValue").textContent = apy.toString();
 
-const contractBalance = await provider.getBalance(contractAddress);
-document.getElementById("poolBalance").textContent =
-  parseFloat(ethers.utils.formatEther(contractBalance)).toFixed(2);
+  document.getElementById("poolBalance").textContent = parseFloat(ethers.utils.formatEther(poolTotalStaked)).toFixed(2);
+
+  // Optional: cek JWR balance (kalau mau, pake ERC20 interface)
 }
-  async function connectWallet() {
-    if (!window.ethereum) return alert("Please install MetaMask or OKX Wallet");
-    provider = new ethers.providers.Web3Provider(window.ethereum);
+	async function connectWallet() {
+  if (!window.ethereum) return alert("Please install MetaMask or OKX Wallet");
+  provider = new ethers.providers.Web3Provider(window.ethereum);
 
-    await provider.send("wallet_addEthereumChain", [{
-      chainId: '0x40d9',
-      chainName: '0G-Galileo-Testnet',
-      rpcUrls: ['https://evmrpc-testnet.0g.ai'],
-      nativeCurrency: { name: 'OG Token', symbol: 'OG', decimals: 18 },
-      blockExplorerUrls: ['https://chainscan-galileo.0g.ai/']
-    }]);
+  await provider.send("wallet_addEthereumChain", [{
+    chainId: '0x40d9',
+    chainName: '0G-Galileo-Testnet',
+    rpcUrls: ['https://evmrpc-testnet.0g.ai'],
+    nativeCurrency: { name: 'OG Token', symbol: 'OG', decimals: 18 },
+    blockExplorerUrls: ['https://chainscan-galileo.0g.ai/']
+  }]);
 
-    await provider.send("eth_requestAccounts", []);
-    signer = provider.getSigner();
-    walletAddress = await signer.getAddress();
-    contract = new ethers.Contract(contractAddress, abi, signer);
+  await provider.send("eth_requestAccounts", []);
+  signer = provider.getSigner();
+  walletAddress = await signer.getAddress();
+  contract = new ethers.Contract(contractAddress, abi, signer);
+  token = new ethers.Contract(jwrTokenAddress, faucetAbi, signer);
 
-    document.getElementById("walletAddress").textContent = walletAddress.slice(0, 6) + "..." + walletAddress.slice(-4);
-    document.getElementById("connectBtn").classList.add("hidden");
-    document.getElementById("disconnectBtn").classList.remove("hidden");
+  document.getElementById("walletAddress").textContent = walletAddress.slice(0, 6) + "..." + walletAddress.slice(-4);
+  document.getElementById("connectBtn").classList.add("hidden");
+  document.getElementById("disconnectBtn").classList.remove("hidden");
+  updateUI();
+}
 
-    const rawBal = await provider.getBalance(walletAddress);
-    balance = parseFloat(ethers.utils.formatEther(rawBal));
-    document.getElementById("walletBalance").textContent = `Balance: ${balance.toFixed(2)} 0G`;
+function disconnectWallet() {
+  provider = null;
+  signer = null;
+  walletAddress = null;
+  balance = 0;
 
-    const staked = await contract.getStakedAmount(walletAddress);
-    const reward = await contract.pendingReward(walletAddress);
-    totalStaked = parseFloat(ethers.utils.formatEther(staked));
+  document.getElementById("walletAddress").textContent = "-";
+  document.getElementById("walletBalance").textContent = "Balance: -";
+  document.getElementById("connectBtn").classList.remove("hidden");
+  document.getElementById("disconnectBtn").classList.add("hidden");
 
-    document.getElementById("totalStaked").textContent = totalStaked.toFixed(2) + " 0G";
-    document.getElementById("pendingRewards").textContent = parseFloat(ethers.utils.formatEther(reward)).toFixed(2) + " 0G";
+  document.getElementById("amount").style.display = "none";
+  document.getElementById("slider").style.display = "none";
+  document.getElementById("percentageText").style.display = "none";
+}
 
-    setMode(mode);
+function setMode(selected) {
+  mode = selected;
+  document.getElementById('stakeBtn').className =
+    selected === 'stake' ? "bg-gray-900 text-white py-2 rounded" : "bg-gray-200 text-gray-800 py-2 rounded";
+  document.getElementById('unstakeBtn').className =
+    selected === 'unstake' ? "bg-gray-900 text-white py-2 rounded" : "bg-gray-200 text-gray-800 py-2 rounded";
+
+  const showForm = (mode === 'stake') || (mode === 'unstake' && totalStaked > 0);
+  document.getElementById("amount").style.display = showForm ? "block" : "none";
+  document.getElementById("slider").style.display = showForm ? "block" : "none";
+  document.getElementById("percentageText").style.display = showForm ? "block" : "none";
+
+  if (mode === 'unstake') {
+    document.getElementById("amount").value = totalStaked.toFixed(2);
+  }
+}
+
+async function confirmAction() {
+  const amount = parseFloat(document.getElementById("amount").value);
+  if (!walletAddress) return alert("Please connect wallet.");
+  if (!amount || amount <= 0) return alert("Enter valid amount.");
+
+  const value = ethers.utils.parseEther(amount.toString());
+  let tx, receipt;
+
+  if (mode === "stake") {
+    tx = await contract.stake(jwrTokenAddress, value);
+  } else {
+    tx = await contract.unstake(jwrTokenAddress, value);
   }
 
-  function disconnectWallet() {
-    provider = null;
-    signer = null;
-    walletAddress = null;
-    balance = 0;
+  receipt = await tx.wait();
+  const txBox = document.getElementById("txHashMsg");
+  const txLink = document.getElementById("txLink");
+  txLink.href = `https://chainscan-galileo.0g.ai/tx/${receipt.transactionHash}`;
+  txBox.classList.remove("hidden");
+  setTimeout(() => { txBox.classList.add("hidden"); }, 10000);
 
-    document.getElementById("walletAddress").textContent = "-";
-    document.getElementById("walletBalance").textContent = "Balance: -";
-    document.getElementById("connectBtn").classList.remove("hidden");
-    document.getElementById("disconnectBtn").classList.add("hidden");
+  updateUI();
+}
 
-    document.getElementById("amount").style.display = "none";
-    document.getElementById("slider").style.display = "none";
-    document.getElementById("percentageText").style.display = "none";
+async function claimRewards() {
+  if (!walletAddress) return alert("Connect your wallet first.");
+  try {
+    const tx = await contract.claimReward(jwrTokenAddress);
+    const receipt = await tx.wait();
+    const txBox = document.getElementById("txHashMsg");
+    const txLink = document.getElementById("txLink");
+    txLink.href = `https://chainscan-galileo.0g.ai/tx/${receipt.transactionHash}`;
+    txBox.classList.remove("hidden");
+    setTimeout(() => { txBox.classList.add("hidden"); }, 10000);
+    setTimeout(updateUI, 1000);
+  } catch (err) {
+    alert("Claim failed: " + err.message);
   }
+}
 
-  function setMode(selected) {
-    mode = selected;
-    document.getElementById('stakeBtn').className =
-      selected === 'stake' ? "bg-gray-900 text-white py-2 rounded" : "bg-gray-200 text-gray-800 py-2 rounded";
-    document.getElementById('unstakeBtn').className =
-      selected === 'unstake' ? "bg-gray-900 text-white py-2 rounded" : "bg-gray-200 text-gray-800 py-2 rounded";
+async function depositRewards() {
+  const admin = "0x408e68F9dce5A0cd175Cd7C7EefB634D5f03A257";
+  if (!walletAddress) {
+    alert("Please connect your wallet.");
+    return;
+  }
+  if (walletAddress.toLowerCase() !== admin.toLowerCase()) {
+    alert("Only admin can deposit rewards.");
+    return;
+  }
+  const input = "1000000"; // hardcoded
+  try {
+    const value = ethers.utils.parseEther(input);
+    const tx = await contract.depositReward(jwrTokenAddress, value);
+    await tx.wait();
+    alert("Reward deposited successfully!");
+    updateUI();
+  } catch (err) {
+    console.error(err);
+    alert("Deposit failed: " + (err.data?.message || err.message));
+  }
+}
 
-    const showForm = (mode === 'stake') || (mode === 'unstake' && totalStaked > 0);
-    document.getElementById("amount").style.display = showForm ? "block" : "none";
-    document.getElementById("slider").style.display = showForm ? "block" : "none";
-    document.getElementById("percentageText").style.display = showForm ? "block" : "none";
+async function claimFaucet() {
+  if (!walletAddress) return alert("Connect wallet first.");
+  try {
+    const tx = await token.faucet();
+    const receipt = await tx.wait();
+    alert("Faucet claimed! Tx: " + receipt.transactionHash);
+  } catch (err) {
+    alert("Faucet failed: " + (err.data?.message || err.message));
+  }
+}
 
-    if (mode === 'unstake') {
-      document.getElementById("amount").value = totalStaked.toFixed(2);
+setInterval(async () => {
+  if (walletAddress && contract) {
+    try {
+      const reward = await contract.pendingReward(jwrTokenAddress, walletAddress);
+      document.getElementById("pendingRewards").textContent = parseFloat(ethers.utils.formatEther(reward)).toFixed(4) + " JWR";
+    } catch (err) {
+      console.error("Failed to update reward:", err);
     }
   }
+}, 3000);
 
-  async function confirmAction() {
-    const amount = parseFloat(document.getElementById("amount").value);
-    if (!walletAddress) return alert("Please connect wallet.");
-    if (!amount || amount <= 0) return alert("Enter valid amount.");
-
-    const value = ethers.utils.parseEther(amount.toString());
-    const tx = mode === "stake"
-      ? await contract.stake({ value })
-      : await contract.unstake(value);
-
-    const receipt = await tx.wait();
-
-const txBox = document.getElementById("txHashMsg");
-const txLink = document.getElementById("txLink");
-txLink.href = `https://chainscan-galileo.0g.ai/tx/${receipt.transactionHash}`;
-txBox.classList.remove("hidden");
-setTimeout(() => { txBox.classList.add("hidden"); }, 10000);
-
-updateUI();
+let actionsVisible = true;
+function toggleActions() {
+  const box = document.getElementById("actionButtons");
+  if (actionsVisible) {
+    box.style.transform = "scaleY(0)";
+    box.style.height = "0";
+    box.style.opacity = "0";
+    box.style.overflow = "hidden";
+  } else {
+    box.style.transform = "scaleY(1)";
+    box.style.height = "auto";
+    box.style.opacity = "1";
+    box.style.overflow = "visible";
   }
+  actionsVisible = !actionsVisible;
+}
 
-  window.onload = () => {
-    document.getElementById("connectBtn").addEventListener("click", connectWallet);
-  };
-  const slider = document.getElementById("slider");
+window.onload = () => {
+  document.getElementById("connectBtn").addEventListener("click", connectWallet);
+};
+const slider = document.getElementById("slider");
 const amountInput = document.getElementById("amount");
 const percentageText = document.getElementById("percentageText");
 
@@ -394,83 +473,10 @@ amountInput.addEventListener("input", () => {
   slider.value = ((val / base) * 100).toFixed(0);
   percentageText.textContent = `${slider.value}%`;
 });
-  async function claimRewards() {
-  if (!walletAddress) return alert("Connect your wallet first.");
-  try {
-    const tx = await contract.claimReward();
-    const receipt = await tx.wait();
-
-// TX hash UI
-const txBox = document.getElementById("txHashMsg");
-const txLink = document.getElementById("txLink");
-txLink.href = `https://chainscan-galileo.0g.ai/tx/${receipt.transactionHash}`;
-txBox.classList.remove("hidden");
-setTimeout(() => { txBox.classList.add("hidden"); }, 10000);
-
-    // Tambahkan delay 1 detik sebelum refresh UI
-    setTimeout(updateUI, 1000);
-  } catch (err) {
-    alert("Claim failed: " + err.message);
-  }
-}
-
-async function depositRewards() {
-  const admin = "0x408e68F9dce5A0cd175Cd7C7EefB634D5f03A257";
-  if (!walletAddress) {
-    alert("Please connect your wallet.");
-    return;
-  }
-
-  if (walletAddress.toLowerCase() !== admin.toLowerCase()) {
-    alert("Only admin can deposit rewards.");
-    return;
-  }
-
-  const input = "10"; // hardcoded
-
-  try {
-    const value = ethers.utils.parseEther(input);
-    const tx = await contract.depositReward({ value });
-    await tx.wait();
-    alert("Reward deposited successfully!");
-    updateUI();
-  } catch (err) {
-    console.error(err);
-    alert("Deposit failed: " + (err.data?.message || err.message));
-  }
-}
-	setInterval(async () => {
-  if (walletAddress && contract) {
-    try {
-      const reward = await contract.pendingReward(walletAddress);
-      document.getElementById("pendingRewards").textContent = parseFloat(ethers.utils.formatEther(reward)).toFixed(4) + " 0G";
-    } catch (err) {
-      console.error("Failed to update reward:", err);
-    }
-  }
-}, 3000); // update setiap 3 detik
-	let actionsVisible = true;
-
-function toggleActions() {
-  const box = document.getElementById("actionButtons");
-
-  if (actionsVisible) {
-    box.style.transform = "scaleY(0)";
-    box.style.height = "0";
-    box.style.opacity = "0";
-    box.style.overflow = "hidden";
-  } else {
-    box.style.transform = "scaleY(1)";
-    box.style.height = "auto";
-    box.style.opacity = "1";
-    box.style.overflow = "visible";
-  }
-
-  actionsVisible = !actionsVisible;
-}
 </script>
-	<div id="txHashMsg" class="fixed bottom-4 right-4 bg-white shadow-md text-blue-600 text-xs px-3 py-2 rounded hidden z-50">
-  <a id="txLink" href="#" target="_blank">View Transaction</a>
-	</div>
+<!-- Tombol Faucet -->
+<button onclick="claimFaucet()" class="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-full shadow z-50 text-sm">
+  Faucet JWR
+</button>
 </body>
 </html>
