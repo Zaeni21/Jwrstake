@@ -285,7 +285,7 @@ async function updateUI() {
 ];
 const jwrContract = new ethers.Contract(jwrTokenAddress, erc20Abi, provider);
 const jwrBalRaw = await jwrContract.balanceOf(walletAddress);
-const jwrBal = parseFloat(ethers.utils.formatEther(jwrBalRaw));
+jwrBal = parseFloat(ethers.utils.formatEther(jwrBalRaw));
   totalStaked = parseFloat(ethers.utils.formatEther(staked.totalStaked)); // pakai totalStaked di pool
 
   document.getElementById("walletBalance").textContent = `Balance: ${jwrBal.toFixed(2)} JWR`;
