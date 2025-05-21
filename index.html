@@ -216,8 +216,9 @@ async function confirmAction() {
   if (mode === "stake") {
     // Tambah approval JWR sebelum stake!
     const erc20Abi = [
-      "function approve(address spender, uint256 amount) public returns (bool)"
-    ];
+  "function approve(address spender, uint256 amount) public returns (bool)",
+  "function allowance(address owner, address spender) view returns (uint256)"
+];
     const jwrContract = new ethers.Contract(jwrTokenAddress, erc20Abi, signer);
     const allowance = await jwrContract.allowance(walletAddress, contractAddress);
     if (allowance.lt(value)) {
