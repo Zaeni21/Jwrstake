@@ -280,12 +280,15 @@ async function updateUI() {
   // User info
   const staked = await contract.pools(jwrTokenAddress);
   const reward = await contract.pendingReward(jwrTokenAddress, walletAddress);
-  const rawBal = await provider.getBalance(walletAddress);
-
-  balance = parseFloat(ethers.utils.formatEther(rawBal));
+  const erc20Abi = [
+  "function balanceOf(address owner) view returns (uint256)"
+];
+const jwrContract = new ethers.Contract(jwrTokenAddress, erc20Abi, provider);
+const jwrBalRaw = await jwrContract.balanceOf(walletAddress);
+const jwrBal = parseFloat(ethers.utils.formatEther(jwrBalRaw));
   totalStaked = parseFloat(ethers.utils.formatEther(staked.totalStaked)); // pakai totalStaked di pool
 
-  document.getElementById("walletBalance").textContent = `Balance: ${balance.toFixed(2)} JWR`;
+  document.getElementById("walletBalance").textContent = `Balance: ${jwrBal.toFixed(2)} JWR`;
   document.getElementById("totalStaked").textContent = totalStaked.toFixed(2) + " JWR";
   document.getElementById("pendingRewards").textContent = parseFloat(ethers.utils.formatEther(reward)).toFixed(2) + " JWR";
   document.getElementById("apyValue").textContent = apy.toString();
