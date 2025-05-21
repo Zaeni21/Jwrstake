@@ -19,8 +19,23 @@
     .input-soft { background: #f7fafc; border-radius: 12px; border: 1.2px solid #e3e8ee; padding: 12px; font-size: 1.1rem; }
     .slider-soft { accent-color: #0057ff; height: 3.5px; }
     .info-title { color: #64748b; font-size: 1rem; }
-    .info-value { font-size: 1.25rem; font-weight: 600; }
-    .faucet-btn { position:fixed; bottom:22px; right:18px; z-index:99; background:#05c46b; color:#fff; padding:14px 24px; border-radius:18px; font-weight:600; box-shadow:0 3px 16px #0001; }
+    .info-value {
+  font-size: 1.05rem;  /* dari 1.25rem jadi lebih kecil */
+  font-weight: 600;
+  word-break: break-all;
+    }
+  .faucet-btn {
+  position: fixed;
+  bottom: 16px;
+  right: 10px;
+  z-index: 99;
+  background: #05c46b;
+  color: #fff;
+  padding: 11px 20px;
+  border-radius: 18px;
+  font-weight: 600;
+  box-shadow: 0 3px 16px #0001;
+  }
   </style>
 </head>
 <body>
@@ -197,7 +212,20 @@ async function confirmAction() {
   if (!amount || amount <= 0) return alert("Enter valid amount.");
   const value = ethers.utils.parseEther(amount.toString());
   let tx, receipt;
+
   if (mode === "stake") {
+    // Tambah approval JWR sebelum stake!
+    const erc20Abi = [
+      "function approve(address spender, uint256 amount) public returns (bool)"
+    ];
+    const jwrContract = new ethers.Contract(jwrTokenAddress, erc20Abi, signer);
+    const allowance = await jwrContract.allowance(walletAddress, contractAddress);
+    if (allowance.lt(value)) {
+      // Kalau allowance kurang, approve dulu
+      const approveTx = await jwrContract.approve(contractAddress, value);
+      await approveTx.wait();
+    }
+    // Lanjut stake
     tx = await contract.stake(jwrTokenAddress, value);
   } else {
     tx = await contract.unstake(jwrTokenAddress, value);
