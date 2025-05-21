@@ -58,16 +58,16 @@
       </div>
       <p id="walletBalance" class="text-sm text-gray-500 mb-3">Balance: -</p>
       <div class="text-center text-sm text-gray-500 mb-4">
-        APY: <span id="apyValue">-</span>% &bull; Pool: <span id="poolBalance">-</span> JWR
+        APY: <span id="apyValue">-</span>% &bull; Pool: <span id="poolBalance">-</span>
       </div>
       <div class="grid grid-cols-2 gap-6 text-center mb-2">
         <div>
           <div class="info-title">Total Staked</div>
-          <div id="totalStaked" class="info-value">0.00 JWR</div>
+          <div id="totalStaked" class="info-value">0.00</div>
         </div>
         <div>
           <div class="info-title">Pending Rewards</div>
-          <div id="pendingRewards" class="info-value">0.00 JWR</div>
+          <div id="pendingRewards" class="info-value">0.00</div>
         </div>
       </div>
     </div>
@@ -98,9 +98,7 @@
   </div>
 
   <!-- Tombol faucet pojok kanan bawah -->
-  <button onclick="claimFaucet()" class="faucet-btn">
-    Faucet JWR
-  </button>
+  <button onclick="claimFaucet()" class="faucet-btn">Faucet</button>
 
 <script>
   let provider, signer, walletAddress, contract;
@@ -144,9 +142,9 @@ async function updateUI() {
   jwrBal = parseFloat(ethers.utils.formatEther(jwrBalRaw));
   totalStaked = parseFloat(ethers.utils.formatEther(staked.totalStaked));
 
-  document.getElementById("walletBalance").textContent = `Balance: ${jwrBal.toFixed(2)} JWR`;
-  document.getElementById("totalStaked").textContent = totalStaked.toFixed(2) + " JWR";
-  document.getElementById("pendingRewards").textContent = parseFloat(ethers.utils.formatEther(reward)).toFixed(2) + " JWR";
+  document.getElementById("walletBalance").textContent = `Balance: ${jwrBal.toFixed(2)};
+  document.getElementById("totalStaked").textContent = totalStaked.toFixed(2);
+  document.getElementById("pendingRewards").textContent = parseFloat(ethers.utils.formatEther(reward)).toFixed(2);
   document.getElementById("apyValue").textContent = apy.toString();
   document.getElementById("poolBalance").textContent = parseFloat(ethers.utils.formatEther(poolTotalStaked)).toFixed(2);
 }
@@ -283,7 +281,7 @@ setInterval(async () => {
   if (walletAddress && contract) {
     try {
       const reward = await contract.pendingReward(jwrTokenAddress, walletAddress);
-      document.getElementById("pendingRewards").textContent = parseFloat(ethers.utils.formatEther(reward)).toFixed(4) + " JWR";
+      document.getElementById("pendingRewards").textContent = parseFloat(ethers.utils.formatEther(reward)).toFixed(4);
     } catch (err) {}
   }
 }, 3000);
